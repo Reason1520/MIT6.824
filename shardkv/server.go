@@ -267,8 +267,8 @@ func (kv *ShardKV) applyPutAppend(op Op) OpResult {
 		return OpResult{Err: ErrWrongGroup}
 	}
 
-	// 幂等性检查
-	if lastRes, ok := kv.lastOps[op.ClientID]; ok && lastRes.RPCID == op.RPCID {
+	// 幂等性检查：RPCID 单调递增，旧请求和重试请求都不能重复执行。
+	if lastRes, ok := kv.lastOps[op.ClientID]; ok && op.RPCID <= lastRes.RPCID {
 		return lastRes
 	}
 

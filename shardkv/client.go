@@ -12,6 +12,7 @@ import "6.5840/labrpc"
 import "crypto/rand"
 import "math/big"
 import "6.5840/shardctrler"
+import "sync/atomic"
 import "time"
 
 // which shard is a key in?
@@ -40,6 +41,7 @@ type Clerk struct {
 	makeEnd func(string) *labrpc.ClientEnd
 	// You will have to modify this struct.
 	ClientID int64
+	nextRPCID int64
 }
 
 // the tester calls MakeClerk.
@@ -56,7 +58,12 @@ func MakeClerk(ctrlers []*labrpc.ClientEnd, makeEnd func(string) *labrpc.ClientE
 	ck.makeEnd = makeEnd
 	// You'll have to add code here.
 	ck.ClientID = nrand()
+	ck.nextRPCID = 1
 	return ck
+}
+
+func (ck *Clerk) allocRPCID() int64 {
+	return atomic.AddInt64(&ck.nextRPCID, 1)
 }
 
 // fetch the current value for a key.
@@ -68,7 +75,7 @@ func (ck *Clerk) Get(key string) string {
 	args := GetArgs{}
 	args.Key = key
 	args.ClientID = ck.ClientID
-	args.RPCID = nrand()
+	args.RPCID = ck.allocRPCID()
 
 	for {
 		shard := key2shard(key)
@@ -105,7 +112,7 @@ func (ck *Clerk) PutAppend(key string, value string, op string) {
 	args.Value = value
 	args.Op = op
 	args.ClientID = ck.ClientID
-	args.RPCID = nrand()
+	args.RPCID = ck.allocRPCID()
 
 	for {
 		shard := key2shard(key)
